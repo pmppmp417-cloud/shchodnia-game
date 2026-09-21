@@ -1,1 +1,111 @@
-<!doctype html><html lang="uk"><head><link rel="stylesheet" href="style.css"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080812"><title>Щодня — Daily Game</title><link rel="stylesheet" href="/style.css"></head><body><div class="bg"></div><header><div class="nav"><div class="logo">Що<span>дня</span> 🎮</div><div id="userBox" class="user">Гість</div></div></header><main><section class="hero"><div class="badge">🔥 DAILY GAME</div><h1>Зайди сьогодні.<br><span>Забери свій рекорд.</span></h1><p>Мініігри, місії, монети, скіни та щоденні нагороди.</p></section><section id="login" class="panel login"><h2>Створи гравця</h2><p>Твій прогрес зберігатиметься на сервері.</p><div class="row"><input id="name" maxlength="20" placeholder="Твій нікнейм"><button onclick="login()">ГРАТИ 🚀</button></div></section><section id="app" class="hidden"><div class="stats"><div><small>XP</small><strong id="points">0</strong></div><div><small>🪙 МОНЕТИ</small><strong id="coins">0</strong></div><div><small>🔥 STREAK</small><strong id="streak">1</strong></div><div><small>РІВЕНЬ</small><strong id="level">Новачок</strong></div></div><div class="grid"><article class="card question"><div class="top"><div class="icon">🧠</div><span class="pill">+50 XP</span></div><small>ПИТАННЯ ДНЯ</small><h2 id="q"></h2><div id="answers"></div><div id="answerResult"></div></article><article class="card"><div class="icon">⚡</div><small>РЕАКЦІЯ</small><h2>Натисни 10 разів</h2><p>Чим швидше — тим більше XP.</p><button id="gameStart" onclick="startGame()">ПОЧАТИ</button><div id="game"></div></article><article class="card"><div class="icon">🎯</div><small>ВГАДАЙ ЧИСЛО</small><h2>1–20</h2><p>Вгадай число за 5 спроб.</p><div class="row"><input id="guessInput" type="number" min="1" max="20" placeholder="Число"><button onclick="guess()">OK</button></div><div id="guessResult"></div></article><article class="card"><div class="icon">🧠</div><small>ПАМ'ЯТЬ</small><h2>Запам'ятай послідовність</h2><button id="memoryStart" onclick="memoryStart()">ПОЧАТИ</button><div id="memory"></div></article><article class="card"><div class="icon">🎁</div><small>ЩОДЕННИЙ БОНУС</small><h2>Забери подарунок</h2><p>+25 XP і монети щодня.</p><button id="bonusBtn" onclick="claimBonus()">ЗАБРАТИ</button><div id="bonusResult"></div></article><article class="card wide"><div class="top"><div><div class="icon">🎯</div><small>МІСІЇ</small></div><span class="pill">НАГОРОДИ</span></div><div id="missions"></div></article><article class="card wide"><div class="top"><div><div class="icon">🛍️</div><small>МАГАЗИН СКІНІВ</small></div><span class="pill">🪙 МОНЕТИ</span></div><div id="shop" class="shop"></div></article><article class="card wide"><div class="top"><div><div class="icon">🏆</div><small>ТОП ГРАВЦІВ</small></div><span class="pill">LIVE</span></div><div id="leaders"></div></article></div></section></main><footer>Щодня © 2026 · Грай щодня, збирай XP та відкривай скіни.</footer><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#11183d">
+  <title>Щодня — Daily Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <div class="brand">ЩОДНЯ <span>🎮</span></div>
+        <div class="subtitle">Твоя маленька гра на кожен день</div>
+      </div>
+      <div class="streak">🔥 <span id="streak">1</span></div>
+    </header>
+
+    <section class="hero glass">
+      <div class="hero-badge">⚡ DAILY GAME</div>
+      <h1>Зайди сьогодні.<br><span>Забери свій рекорд.</span></h1>
+      <p>Грай у мініігри, отримуй XP, монети та підвищуй рівень.</p>
+
+      <div class="player-row">
+        <div class="avatar" id="avatar">👾</div>
+        <div class="player-info">
+          <div class="label">ГРАВЕЦЬ</div>
+          <div class="player-name" id="playerName">Гість</div>
+        </div>
+        <button class="icon-btn" id="changeNameBtn" aria-label="Змінити ім'я">✏️</button>
+      </div>
+
+      <div class="level-box">
+        <div class="level-line">
+          <span>Рівень <b id="level">1</b></span>
+          <span><b id="xp">0</b> / <span id="xpNeed">100</span> XP</span>
+        </div>
+        <div class="progress"><div id="xpBar"></div></div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat glass"><div class="stat-icon">⭐</div><div><b id="xpStat">0</b><small>XP</small></div></div>
+      <div class="stat glass"><div class="stat-icon">🪙</div><div><b id="coins">0</b><small>МОНЕТ</small></div></div>
+      <div class="stat glass"><div class="stat-icon">🔥</div><div><b id="streakStat">1</b><small>STREAK</small></div></div>
+    </section>
+
+    <section class="reward glass">
+      <div>
+        <div class="section-kicker">🎁 ЩОДЕННА НАГОРОДА</div>
+        <h2 id="rewardTitle">Сьогодні ще не забрано!</h2>
+        <p id="rewardText">Забери бонус і отримай +50 XP та 25 монет.</p>
+      </div>
+      <button class="primary small" id="rewardBtn">ЗАБРАТИ</button>
+    </section>
+
+    <section class="games">
+      <div class="section-head">
+        <div><div class="section-kicker">🎮 МІНІІГРИ</div><h2>Обери гру</h2></div>
+        <div class="hint">+XP за перемогу</div>
+      </div>
+
+      <article class="game-card glass">
+        <div class="game-icon">⚡</div>
+        <div class="game-content">
+          <div class="game-title">РЕАКЦІЯ</div>
+          <p>Натисни кнопку <b>10 разів</b> якомога швидше.</p>
+          <div class="game-meta"><span>🏆 до +35 XP</span><span>🪙 +10</span></div>
+          <button class="primary game-btn" data-game="reaction">ПОЧАТИ 🚀</button>
+        </div>
+      </article>
+
+      <article class="game-card glass">
+        <div class="game-icon">🎯</div>
+        <div class="game-content">
+          <div class="game-title">ВГАДАЙ ЧИСЛО</div>
+          <p>Я загадав число від <b>1 до 20</b>. Маєш 5 спроб.</p>
+          <div class="game-meta"><span>🏆 +50 XP</span><span>🪙 +20</span></div>
+          <button class="primary game-btn" data-game="guess">ГРАТИ 🎯</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="achievements glass">
+      <div class="section-kicker">🏆 ПРОГРЕС</div>
+      <h2>Твої досягнення</h2>
+      <div class="achievement-grid">
+        <div class="achievement" id="a1"><span>🚀</span><b>Старт</b><small>Перша гра</small></div>
+        <div class="achievement" id="a2"><span>🔥</span><b>Серія</b><small>3 гри</small></div>
+        <div class="achievement" id="a3"><span>💎</span><b>Майстер</b><small>500 XP</small></div>
+      </div>
+    </section>
+
+    <footer>Збереження працює автоматично на цьому пристрої 💾</footer>
+  </main>
+
+  <div class="modal" id="modal">
+    <div class="modal-card glass">
+      <button class="close" id="closeModal">✕</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>

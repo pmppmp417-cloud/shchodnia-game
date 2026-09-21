@@ -1,11 +1,75 @@
-let user=JSON.parse(localStorage.getItem('sh_user')||'null');let guessSecret=0,guessTries=0,memorySeq=[];const $=id=>document.getElementById(id);async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt});return r.json()}
-async function login(){const name=$('name').value.trim();if(!name)return alert('Введи нікнейм');const res=await api('/api/login',{method:'POST',body:JSON.stringify({name})});if(res.error)return alert(res.error);user=res;localStorage.setItem('sh_user',JSON.stringify(user));showApp()}
-async function showApp(){ $('login').classList.add('hidden');$('app').classList.remove('hidden');$('userBox').textContent='👤 '+user.name;updateUser(user);const q=await api('/api/daily');$('q').textContent=q.q;$('answers').innerHTML=q.a.map((x,i)=>`<button class="answer" onclick="answer(${i},this)">${x}</button>`).join('');guessSecret=Math.floor(Math.random()*20)+1;guessTries=0;loadAll()}
-function updateUser(u){user=u;localStorage.setItem('sh_user',JSON.stringify(u));$('points').textContent=u.points;$('coins').textContent=u.coins||0;$('streak').textContent=u.streak;$('level').textContent=u.points>=1500?'Легенда':u.points>=800?'Майстер':u.points>=400?'Про':'Новачок'}
-async function answer(i,btn){document.querySelectorAll('.answer').forEach(x=>x.disabled=true);const q=await api('/api/daily');const res=await api('/api/answer',{method:'POST',body:JSON.stringify({userId:user.id,correct:i===q.correct})});btn.classList.add(res.correct?'good':'bad');$('answerResult').textContent=res.alreadyAnswered?'Вже відповідав сьогодні.':res.correct?'🔥 Правильно! +50 XP':'❌ Неправильно. +5 XP';updateUser(res);loadAll()}
-async function startGame(){if(window.playing)return;window.playing=true;$('gameStart').disabled=true;$('game').innerHTML='<div class="timer">3</div>';for(const n of [3,2,1]){await wait(500);$('game .timer').textContent=n}await wait(500);$('game').innerHTML='<button class="tap" onclick="gameClick()">НАТИСКАЙ! <b>0</b>/10</button>';window.clicks=0;window.started=performance.now()}async function gameClick(){window.clicks++;const b=document.querySelector('.tap b');if(b)b.textContent=window.clicks;if(window.clicks===10){window.playing=false;const ms=Math.round(performance.now()-window.started);const res=await api('/api/game',{method:'POST',body:JSON.stringify({userId:user.id,time:ms})});$('game').innerHTML=`<div class="win">⚡ ${ms} мс<br><small>+${res.reward} XP · +${res.coins} 🪙</small></div>`;$('gameStart').disabled=false;updateUser(res);loadAll()}}
-function guess(){const n=Number($('guessInput').value);if(!n||guessTries>=5)return;guessTries++;if(n===guessSecret){finishMini('guess');$('guessResult').textContent='🎉 Вгадав! Нагорода нарахована.';guessSecret=Math.floor(Math.random()*20)+1;guessTries=0;return}$('guessResult').textContent=n<guessSecret?'⬆️ Більше!': '⬇️ Менше!';if(guessTries===5){$('guessResult').textContent='😅 Спроби закінчились. Число: '+guessSecret;guessSecret=Math.floor(Math.random()*20)+1;guessTries=0}}
-async function finishMini(type){const res=await api('/api/mini',{method:'POST',body:JSON.stringify({userId:user.id,type})});updateUser(res);loadAll()}
-async function memoryStart(){const len=4+Math.min(2,Math.floor((user.points||0)/500));memorySeq=Array.from({length:len},()=>Math.floor(Math.random()*4));$('memory').innerHTML=`<div class="memoryShow">${memorySeq.map(n=>['🔴','🟢','🔵','🟡'][n]).join(' ')}</div>`;$('memoryStart').disabled=true;setTimeout(()=>{ $('memory').innerHTML='<div class="memoryBtns">'+[0,1,2,3].map(n=>`<button onclick="memoryPick(${n})">${['🔴','🟢','🔵','🟡'][n]}</button>`).join('')+'</div>';window.memPos=0},1300)}async function memoryPick(n){if(n!==memorySeq[window.memPos]){ $('memory').innerHTML='❌ Не вийшло. Спробуй ще раз.';$('memoryStart').disabled=false;return}window.memPos++;if(window.memPos===memorySeq.length){$('memory').innerHTML='🎉 Памʼять пройдена!';$('memoryStart').disabled=false;await finishMini('memory')}}
-async function claimBonus(){const res=await api('/api/bonus',{method:'POST',body:JSON.stringify({userId:user.id})});$('bonusResult').textContent=res.already?'🎁 Вже забрано сьогодні!':`🎉 +${res.reward} XP · +${res.coins} 🪙`;updateUser(res);$('bonusBtn').disabled=true;loadAll()}
-async function loadAll(){loadBoard();loadBonusState();loadMissions();loadShop()}async function loadBonusState(){const r=await api('/api/bonus/state?userId='+user.id);$('bonusBtn').disabled=r.claimed}async function loadBoard(){const list=await api('/api/leaderboard');$('leaders').innerHTML=list.length?list.map((x,i)=>`<div class="leader"><b>${['🥇','🥈','🥉'][i]||('#'+(i+1))}</b><span>${esc(x.name)}</span><span class="score">${x.points} XP · ${x.coins} 🪙</span></div>`).join(''):'Поки що ніхто не грає.'}async function loadMissions(){const m=await api('/api/missions?userId='+user.id);$('missions').innerHTML=m.map(x=>`<div class="mission"><div><b>${x.icon} ${x.title}</b><small>${x.progress}/${x.goal}</small></div><div class="bar"><i style="width:${Math.min(100,x.progress/x.goal*100)}%"></i></div><span>${x.done?'✅':`+${x.reward} 🪙`}</span></div>`).join('')}async function loadShop(){const s=await api('/api/shop?userId='+user.id);$('shop').innerHTML=s.map(x=>`<div class="skin ${x.owned?'owned':''}"><div class="skinIcon" style="--c:${x.color}">👤</div><b>${x.name}</b><small>${x.owned?'Власний':x.price+' 🪙'}</small><button ${x.owned?'disabled':''} onclick="buy(${x.id})">${x.owned?'ВИБРАНО':'КУПИТИ'}</button></div>`).join('')}async function buy(id){const r=await api('/api/shop/buy',{method:'POST',body:JSON.stringify({userId:user.id,itemId:id})});if(r.error)return alert(r.error);updateUser(r);loadShop()}function wait(ms){return new Promise(r=>setTimeout(r,ms))}function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}if(user)showApp();
+const KEY="shchodnia_game_v2";
+const $=s=>document.querySelector(s);
+const state=JSON.parse(localStorage.getItem(KEY)||"null")||{
+  name:"Гість",xp:0,coins:0,streak:1,games:0,lastReward:"",lastDay:""
+};
+const today=()=>new Date().toISOString().slice(0,10);
+function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}
+function levelInfo(){let level=1,need=100,xp=state.xp;while(xp>=need){xp-=need;level++;need=Math.round(100*level*1.18)}return{level,into:xp,need}}
+function render(){
+  $("#playerName").textContent=state.name;
+  $("#xpStat").textContent=state.xp;
+  $("#coins").textContent=state.coins;
+  $("#streak").textContent=state.streak;
+  $("#streakStat").textContent=state.streak;
+  const l=levelInfo();$("#level").textContent=l.level;$("#xp").textContent=l.into;$("#xpNeed").textContent=l.need;
+  $("#xpBar").style.width=Math.min(100,l.into/l.need*100)+"%";
+  const claimed=state.lastReward===today();
+  $("#rewardBtn").textContent=claimed?"ЗАБРАНО ✓":"ЗАБРАТИ";
+  $("#rewardBtn").disabled=claimed;
+  $("#rewardTitle").textContent=claimed?"Нагороду вже забрано!":"Сьогодні ще не забрано!";
+  $("#rewardText").textContent=claimed?"Повертайся завтра за новим бонусом.":"Отримай +50 XP та 25 монет.";
+  $("#a1").classList.toggle("unlocked",state.games>0);
+  $("#a2").classList.toggle("unlocked",state.games>=3);
+  $("#a3").classList.toggle("unlocked",state.xp>=500);
+}
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(window.tt);window.tt=setTimeout(()=>t.classList.remove("show"),1900)}
+function addReward(xp,coins){
+  state.xp+=xp;state.coins+=coins;state.games++;
+  save();toast(`+${xp} XP  •  +${coins} 🪙`);
+}
+function openModal(html){$("#modalContent").innerHTML=html;$("#modal").classList.add("show")}
+function closeModal(){$("#modal").classList.remove("show");$("#modalContent").innerHTML=""}
+$("#closeModal").onclick=closeModal;
+$("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
+$("#changeNameBtn").onclick=()=>{
+  openModal(`<div class="modal-title">Як тебе звати? 👾</div>
+  <div class="modal-sub">Ім'я буде збережено на цьому пристрої.</div>
+  <div class="modal-actions"><input id="nameInput" maxlength="18" placeholder="Твій нік" value="${state.name==="Гість"?"":state.name}"><button class="primary" id="saveName">ЗБЕРЕГТИ</button></div>`);
+  $("#saveName").onclick=()=>{const n=$("#nameInput").value.trim();if(n){state.name=n;save();closeModal();toast("Ім'я збережено ✨")}};
+};
+$("#rewardBtn").onclick=()=>{
+  if(state.lastReward===today())return;
+  state.lastReward=today();state.xp+=50;state.coins+=25;save();toast("🎁 +50 XP  •  +25 🪙");
+};
+document.querySelectorAll(".game-btn").forEach(b=>b.onclick=()=>b.dataset.game==="reaction"?reactionGame():guessGame());
+
+function reactionGame(){
+ let n=0,start=0;
+ openModal(`<div class="game-center"><div class="modal-title">⚡ РЕАКЦІЯ</div>
+ <div class="modal-sub">Натисни 10 разів якомога швидше.</div>
+ <div class="big-number" id="count">0 / 10</div>
+ <div class="timer" id="timer">Час: —</div>
+ <button class="reaction-button" id="reactBtn">НАТИСНИ!</button></div>`);
+ $("#reactBtn").onclick=()=>{
+   if(!start)start=performance.now();
+   n++;$("#count").textContent=`${n} / 10`;
+   if(n>=10){let sec=(performance.now()-start)/1000;let xp=Math.max(10,Math.round(40-sec*3));let coins=Math.max(5,Math.round(15-sec));addReward(xp,coins);$("#timer").textContent=`Час: ${sec.toFixed(2)} сек`;$("#reactBtn").disabled=true;$("#reactBtn").textContent="ГОТОВО ✓";setTimeout(closeModal,900)}
+   else $("#timer").textContent=`Час: ${((performance.now()-start)/1000).toFixed(2)} сек`;
+ };
+}
+function guessGame(){
+ const target=Math.floor(Math.random()*20)+1;let tries=0;
+ openModal(`<div class="game-center"><div class="modal-title">🎯 ВГАДАЙ ЧИСЛО</div>
+ <div class="modal-sub">Число від 1 до 20. У тебе 5 спроб.</div>
+ <div class="big-number">?</div><div class="modal-actions"><input id="guessInput" type="number" min="1" max="20" placeholder="1–20"><button class="primary" id="guessBtn">ВГАДАТИ</button></div><div class="timer" id="guessMsg">Спроб: 0 / 5</div></div>`);
+ const input=$("#guessInput"),btn=$("#guessBtn"),msg=$("#guessMsg");
+ btn.onclick=()=>{
+   const g=Number(input.value);if(g<1||g>20)return toast("Введи число від 1 до 20");
+   tries++; if(g===target){addReward(50,20);msg.textContent="🎉 Правильно!";btn.disabled=true;setTimeout(closeModal,1000);return}
+   if(tries>=5){msg.textContent=`😅 Було число ${target}`;btn.disabled=true;setTimeout(closeModal,1100);return}
+   msg.textContent=(g<target?"⬆️ Більше":"⬇️ Менше")+` • Спроб: ${tries} / 5`;input.value="";
+ };
+ input.onkeydown=e=>{if(e.key==="Enter")btn.click()};
+}
+render();
